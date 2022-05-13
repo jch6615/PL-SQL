@@ -1,0 +1,135 @@
+--------------------------------------------------------
+--  ファイルを作成しました - 金曜日-4月-08-2022   
+--------------------------------------------------------
+--------------------------------------------------------
+--  DDL for Table BUILDING
+--------------------------------------------------------
+
+  CREATE TABLE "BUILDING" 
+   (	"BUILDING_ID" NUMBER, 
+	"BUILDING_PREFECTURE_ID" NUMBER, 
+	"MAKER_CUSTOMER_CONTROL_NUMBER" VARCHAR2(100 CHAR) COLLATE "USING_NLS_COMP", 
+	"BUILDING_NAME" VARCHAR2(1000 CHAR) COLLATE "USING_NLS_COMP", 
+	"BUILDING_ADDRESS" VARCHAR2(1000 CHAR) COLLATE "USING_NLS_COMP", 
+	"BUILDING_OWNER" VARCHAR2(200 CHAR) COLLATE "USING_NLS_COMP", 
+	"VERSION" NUMBER DEFAULT 0, 
+	"DELETE_FLAG" VARCHAR2(1 CHAR) COLLATE "USING_NLS_COMP" DEFAULT '0', 
+	"CREATE_USER_ID" VARCHAR2(100 CHAR) COLLATE "USING_NLS_COMP" DEFAULT 'mitoco', 
+	"CREATE_DATE" DATE DEFAULT sysdate, 
+	"UPDATE_USER_ID" VARCHAR2(100 CHAR) COLLATE "USING_NLS_COMP" DEFAULT 'mitoco', 
+	"UPDATE_DATE" DATE DEFAULT sysdate
+   )  DEFAULT COLLATION "USING_NLS_COMP" SEGMENT CREATION IMMEDIATE 
+  PCTFREE 10 PCTUSED 40 INITRANS 10 MAXTRANS 255 
+ NOCOMPRESS LOGGING
+  STORAGE(INITIAL 65536 NEXT 1048576 MINEXTENTS 1 MAXEXTENTS 2147483645
+  PCTINCREASE 0 FREELISTS 1 FREELIST GROUPS 1
+  BUFFER_POOL DEFAULT FLASH_CACHE DEFAULT CELL_FLASH_CACHE DEFAULT)
+  TABLESPACE "DATA" ;
+
+   COMMENT ON COLUMN "BUILDING"."BUILDING_ID" IS '物件ID：物件の主キー';
+   COMMENT ON COLUMN "BUILDING"."BUILDING_PREFECTURE_ID" IS '建築地（都道府県ID）：建築地の都道府県。都道府県への外部キー';
+   COMMENT ON COLUMN "BUILDING"."MAKER_CUSTOMER_CONTROL_NUMBER" IS 'メーカー顧客管理番号：申請者（ハウスメーカー等）側で管理している物件の番号';
+   COMMENT ON COLUMN "BUILDING"."BUILDING_NAME" IS '建築名称：建築物の名称（物件の名称だが確認業務の項目名を採用）';
+   COMMENT ON COLUMN "BUILDING"."BUILDING_ADDRESS" IS '建築地（市区町村以下）：建築地の市区町村以下';
+   COMMENT ON COLUMN "BUILDING"."BUILDING_OWNER" IS '建築主：物件の持ち主';
+   COMMENT ON COLUMN "BUILDING"."VERSION" IS 'バージョン';
+   COMMENT ON COLUMN "BUILDING"."DELETE_FLAG" IS '削除フラグ：1:論理削除した（無効）、0:論理削除していない（有効）';
+   COMMENT ON COLUMN "BUILDING"."CREATE_USER_ID" IS '作成ユーザーID：レコードを作成したユーザーID';
+   COMMENT ON COLUMN "BUILDING"."CREATE_DATE" IS '作成日時：レコードを作成した日時';
+   COMMENT ON COLUMN "BUILDING"."UPDATE_USER_ID" IS '更新ユーザーID：レコードの最終更新ユーザーID';
+   COMMENT ON COLUMN "BUILDING"."UPDATE_DATE" IS '更新日時：レコードを最終更新した日時';
+   COMMENT ON TABLE "BUILDING"  IS '物件：申請以下を横串で管理するために建築物（及びその土地）自体を「物件」と定義する';
+--------------------------------------------------------
+--  DDL for Index BUILDING_PK
+--------------------------------------------------------
+
+  CREATE UNIQUE INDEX "BUILDING_PK" ON "BUILDING" ("BUILDING_ID") 
+  PCTFREE 10 INITRANS 20 MAXTRANS 255 COMPUTE STATISTICS 
+  STORAGE(INITIAL 65536 NEXT 1048576 MINEXTENTS 1 MAXEXTENTS 2147483645
+  PCTINCREASE 0 FREELISTS 1 FREELIST GROUPS 1
+  BUFFER_POOL DEFAULT FLASH_CACHE DEFAULT CELL_FLASH_CACHE DEFAULT)
+  TABLESPACE "DATA" ;
+--------------------------------------------------------
+--  DDL for Trigger BUILDING_INSERT_TRG
+--------------------------------------------------------
+
+  CREATE OR REPLACE EDITIONABLE TRIGGER "BUILDING_INSERT_TRG" 
+BEFORE INSERT ON building
+FOR EACH ROW
+DECLARE
+  l_login_id VARCHAR2(100);
+BEGIN
+  :new.building_id := building_building_id_seq.nextval;
+
+  l_login_id := apex_util.get_session_state('G_LOGIN_ID');
+  IF l_login_id IS NULL THEN
+    l_login_id := 'mitoco';
+  END IF;
+
+  IF :new.create_user_id = 'mitoco' THEN
+    :new.create_user_id := l_login_id;
+  END IF;
+  IF :new.update_user_id = 'mitoco' THEN
+    :new.update_user_id := l_login_id;
+  END IF;
+
+END;
+    
+/
+ALTER TRIGGER "BUILDING_INSERT_TRG" ENABLE;
+--------------------------------------------------------
+--  DDL for Trigger BUILDING_UPDATE_TRG
+--------------------------------------------------------
+
+  CREATE OR REPLACE EDITIONABLE TRIGGER "BUILDING_UPDATE_TRG" 
+BEFORE UPDATE ON building
+FOR EACH ROW
+DECLARE
+  l_login_id varchar2(100);
+BEGIN
+  IF not(updating('version')) THEN
+    :new.version := :old.version + 1;
+  END IF;
+
+  l_login_id := apex_util.get_session_state('G_LOGIN_ID');
+  IF l_login_id IS NULL THEN
+    l_login_id := 'mitoco';
+  END IF;
+
+  IF not(updating('update_user_id')) THEN
+    :new.update_user_id := l_login_id;
+  END IF;
+
+  IF not(updating('update_date')) THEN
+    :new.update_date := sysdate;
+  END IF;
+END;
+    
+/
+ALTER TRIGGER "BUILDING_UPDATE_TRG" ENABLE;
+--------------------------------------------------------
+--  Constraints for Table BUILDING
+--------------------------------------------------------
+
+  ALTER TABLE "BUILDING" MODIFY ("BUILDING_ID" NOT NULL ENABLE);
+  ALTER TABLE "BUILDING" MODIFY ("BUILDING_PREFECTURE_ID" NOT NULL ENABLE);
+  ALTER TABLE "BUILDING" MODIFY ("BUILDING_NAME" NOT NULL ENABLE);
+  ALTER TABLE "BUILDING" MODIFY ("VERSION" NOT NULL ENABLE);
+  ALTER TABLE "BUILDING" MODIFY ("DELETE_FLAG" NOT NULL ENABLE);
+  ALTER TABLE "BUILDING" MODIFY ("CREATE_USER_ID" NOT NULL ENABLE);
+  ALTER TABLE "BUILDING" MODIFY ("CREATE_DATE" NOT NULL ENABLE);
+  ALTER TABLE "BUILDING" MODIFY ("UPDATE_USER_ID" NOT NULL ENABLE);
+  ALTER TABLE "BUILDING" MODIFY ("UPDATE_DATE" NOT NULL ENABLE);
+  ALTER TABLE "BUILDING" ADD CHECK ( delete_flag IN ( '0', '1' ) ) ENABLE;
+  ALTER TABLE "BUILDING" ADD CONSTRAINT "BUILDING_PK" PRIMARY KEY ("BUILDING_ID")
+  USING INDEX PCTFREE 10 INITRANS 20 MAXTRANS 255 COMPUTE STATISTICS 
+  STORAGE(INITIAL 65536 NEXT 1048576 MINEXTENTS 1 MAXEXTENTS 2147483645
+  PCTINCREASE 0 FREELISTS 1 FREELIST GROUPS 1
+  BUFFER_POOL DEFAULT FLASH_CACHE DEFAULT CELL_FLASH_CACHE DEFAULT)
+  TABLESPACE "DATA"  ENABLE;
+--------------------------------------------------------
+--  Ref Constraints for Table BUILDING
+--------------------------------------------------------
+
+  ALTER TABLE "BUILDING" ADD CONSTRAINT "BUILDING_PREFECTURE_FK" FOREIGN KEY ("BUILDING_PREFECTURE_ID")
+	  REFERENCES "PREFECTURE" ("PREFECTURE_ID") ENABLE;
